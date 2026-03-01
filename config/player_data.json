@@ -1,0 +1,66 @@
+{
+  "player1": {
+    "stage1": 100.0,
+    "stage2": 100.0,
+    "stage3": 63.03,
+    "stage4": 28.94,
+    "stage5": 13.79,
+    "attempts": 3
+  },
+  "player2": {
+    "stage1": 100.0,
+    "stage2": 100.0,
+    "stage3": 69.23,
+    "stage4": 31.83,
+    "stage5": 16.43,
+    "attempts": 3
+  },
+  "player3": {
+    "stage1": 100.0,
+    "stage2": 100.0,
+    "stage3": 28.94,
+    "stage4": 34.83,
+    "stage5": 16.43,
+    "attempts": 3
+  },
+  "player4": {
+    "stage1": 50.0,
+    "stage2": 25.0,
+    "stage3": 10.23,
+    "stage4": 6.83,
+    "stage5": 2.43,
+    "attempts": 3
+  },
+  "player5": {
+    "stage1": 100.0,
+    "stage2": 100.0,
+    "stage3": 100.0,
+    "stage4": 69.83,
+    "stage5": 42.43,
+    "attempts": 3
+  },
+  "player6": {
+    "stage1": 100.0,
+    "stage2": 80.0,
+    "stage3": 56.23,
+    "stage4": 23.83,
+    "stage5": 10.43,
+    "attempts": 3
+  },
+  "player7": {
+    "stage1": 100.0,
+    "stage2": 100.0,
+    "stage3": 69.23,
+    "stage4": 31.83,
+    "stage5": 16.43,
+    "attempts": 3
+  },
+  "player8": {
+    "stage1": 100.0,
+    "stage2": 94.0,
+    "stage3": 58.23,
+    "stage4": 26.83,
+    "stage5": 13.43,
+    "attempts": 3
+  }
+}
