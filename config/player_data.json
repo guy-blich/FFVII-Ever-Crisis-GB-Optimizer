@@ -5,6 +5,7 @@
     "stage3": 63.03,
     "stage4": 28.94,
     "stage5": 13.79,
+    "stage6": 7.42,
     "attempts": 3
   },
   "player2": {
@@ -13,6 +14,7 @@
     "stage3": 69.23,
     "stage4": 31.83,
     "stage5": 16.43,
+    "stage6": 9.15,
     "attempts": 3
   },
   "player3": {
@@ -21,6 +23,7 @@
     "stage3": 28.94,
     "stage4": 34.83,
     "stage5": 16.43,
+    "stage6": 8.87,
     "attempts": 3
   },
   "player4": {
@@ -29,6 +32,7 @@
     "stage3": 10.23,
     "stage4": 6.83,
     "stage5": 2.43,
+    "stage6": 1.21,
     "attempts": 3
   },
   "player5": {
@@ -37,6 +41,7 @@
     "stage3": 100.0,
     "stage4": 69.83,
     "stage5": 42.43,
+    "stage6": 24.65,
     "attempts": 3
   },
   "player6": {
@@ -45,6 +50,7 @@
     "stage3": 56.23,
     "stage4": 23.83,
     "stage5": 10.43,
+    "stage6": 5.93,
     "attempts": 3
   },
   "player7": {
@@ -53,6 +59,7 @@
     "stage3": 69.23,
     "stage4": 31.83,
     "stage5": 16.43,
+    "stage6": 9.15,
     "attempts": 3
   },
   "player8": {
@@ -61,6 +68,7 @@
     "stage3": 58.23,
     "stage4": 26.83,
     "stage5": 13.43,
+    "stage6": 7.78,
     "attempts": 3
   }
 }

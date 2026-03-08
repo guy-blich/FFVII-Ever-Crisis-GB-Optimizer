@@ -1,8 +1,10 @@
+import logging
 import logging.config
 import sys
 
-DEFAULT_LOGGING = {
+_LOGGING_CONFIG = {
     "version": 1,
+    "disable_existing_loggers": False,
     "formatters": {
         "standard": {
             "format": "%(asctime)s %(levelname)s: %(message)s",
@@ -16,29 +18,30 @@ DEFAULT_LOGGING = {
         "console": {
             "class": "logging.StreamHandler",
             "formatter": "standard",
-            "level": "INFO",
-            "stream": sys.stdout,
+            "stream": "ext://sys.stdout",
         },
         "file": {
             "class": "logging.handlers.RotatingFileHandler",
             "formatter": "simple",
-            "level": "INFO",
             "filename": "logs/optimizer.log",
             "mode": "a",
-            "maxBytes": 100000,
+            "maxBytes": 100_000,
             "backupCount": 5,
         },
     },
+    # "src" is the parent of all project loggers; child loggers propagate here.
     "loggers": {
-        __name__: {
+        "src": {
             "level": "INFO",
             "handlers": ["console", "file"],
+            "propagate": False,
         },
     },
 }
 
 
-def setup_logger() -> None:
-    """Setup the logger"""
-    logging.basicConfig(level=logging.INFO)
-    logging.config.dictConfig(DEFAULT_LOGGING)
+def setup_logger(level: str = "INFO") -> None:
+    """Configure project-wide logging. Call once at program startup."""
+    _LOGGING_CONFIG["loggers"]["src"]["level"] = level
+    _LOGGING_CONFIG["handlers"]["console"]["level"] = level  # type: ignore[index]
+    logging.config.dictConfig(_LOGGING_CONFIG)

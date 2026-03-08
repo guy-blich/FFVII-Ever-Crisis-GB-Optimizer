@@ -1,89 +1,69 @@
-def create_score_lists(players_data: dict) -> tuple:
+def create_score_lists(
+    players_data: dict,
+) -> tuple[dict[str, list[float]], list[str]]:
     """
-    Creates lists of player scores and attempts that have the same order as the players, to easily
-    calculate and iterate, while still keeping track of which score is which player's,
-    since the player name and their scores share the same index in the lists
+    Builds parallel lists of player names and per-stage scores, expanding each
+    player's entry by their number of attempts so that each attempt is treated
+    as an independent slot.
 
-    Potentially, duplicates of player names and scores could be added, in accordance to the amount of attempts the
-    player has
-    :param players_data: Dictionary of player data
+    Stage keys are detected from the data, so adding a new stage only requires
+    updated config files and model fields — no code changes here.
+
+    Returns a dict mapping stage key → list of scores, and the corresponding
+    player name list (same length and order as each score list).
     """
-
-    players = []
-    stage1_scores = []
-    stage2_scores = []
-    stage3_scores = []
-    stage4_scores = []
-    stage5_scores = []
-
-    for player_name, player_data in players_data.items():
-        for i in range(player_data["attempts"]):
-            players.append(player_name)
-            stage1_scores.append(player_data["stage1"])
-            stage2_scores.append(player_data["stage2"])
-            stage3_scores.append(player_data["stage3"])
-            stage4_scores.append(player_data["stage4"])
-            stage5_scores.append(player_data["stage5"])
-
-    return (
-        players,
-        stage1_scores,
-        stage2_scores,
-        stage3_scores,
-        stage4_scores,
-        stage5_scores,
+    first_player = next(iter(players_data.values()))
+    stage_keys = sorted(
+        (k for k in first_player if k.startswith("stage")),
+        key=lambda k: int(k.removeprefix("stage")),
     )
 
+    players: list[str] = []
+    scores: dict[str, list[float]] = {key: [] for key in stage_keys}
 
-def closest_above_100_with_indices(scores: list) -> tuple[float, list[int]]:
+    for player_name, player_data in players_data.items():
+        for _ in range(player_data["attempts"]):
+            players.append(player_name)
+            for key in stage_keys:
+                scores[key].append(player_data[key])
+
+    return scores, players
+
+
+def closest_above_100_with_indices(scores: list[float]) -> tuple[float, list[int]]:
     """
-    Finds the closest score to 100% and returns the sum of the scores and the indices of the scores that pass 100%
-    :param scores: List of player scores
+    Finds the minimum subset of scores whose sum is >= 100 (closest kill).
+    Falls back to the largest achievable sum when 100 cannot be reached.
+
+    Uses a 0/1 knapsack DP scaled to integers to avoid floating-point issues.
+    Returns (sum_percentage, list_of_indices).
     """
-    target = 100
-    scaling_factor = 1000  # Scaling factor to convert percentages to integers
-    scaled_scores = [int(p * scaling_factor) for p in scores]
-    total_sum = sum(scaled_scores)
+    if not scores:
+        return 0.0, []
 
-    # Handle the case with only one option separately
-    if len(scaled_scores) == 1:
-        if scaled_scores[0] >= target * scaling_factor:
-            return scaled_scores[0] / scaling_factor, [0]
-        else:
-            return scaled_scores[0] / scaling_factor, [0]
+    scaling_factor = 1000
+    scaled = [int(s * scaling_factor) for s in scores]
+    total = sum(scaled)
+    target = 100 * scaling_factor
 
-    # Dynamic programming table: to track possible sums
-    _INF = total_sum + 1  # A value representing an unreachable sum
-    # Initialize DP arrays:
-    dp = [_INF] * (total_sum + 1)
-    dp[0] = 0  # A sum of 0 requires no elements
+    # dp[j] = smallest sum of selected items that equals exactly j, or _INF if unreachable
+    _INF = total + 1
+    dp = [_INF] * (total + 1)
+    dp[0] = 0
+    selected_indices: list[list[int]] = [[] for _ in range(total + 1)]
 
-    # To track the indices that lead to each sum
-    selected_indices = [[] for _ in range(len(dp))]
+    for i, score in enumerate(scaled):
+        for j in range(total, score - 1, -1):
+            candidate = dp[j - score] + score
+            if candidate < dp[j]:
+                dp[j] = candidate
+                selected_indices[j] = selected_indices[j - score] + [i]
 
-    # Process each percentage
-    for i, score in enumerate(scaled_scores):
-        for j in range(len(dp) - 1, score - 1, -1):
-            if dp[j - int(score)] + score < dp[j]:
-                dp[j] = dp[j - int(score)] + score
-                selected_indices[j] = selected_indices[j - int(score)].copy()
-                selected_indices[j].append(i)
+    # Find the minimum sum >= target
+    for j in range(target, total + 1):
+        if dp[j] <= total:
+            return dp[j] / scaling_factor, selected_indices[j]
 
-    # Now, find the smallest sum >= 100, if exists
-    best_sum = _INF
-    best_indices = []
-    target_scaled = target * scaling_factor  # 100% scaled to integer
-    for i in range(target_scaled, len(dp)):
-        if dp[i] <= total_sum:
-            best_sum = dp[i]
-            best_indices = selected_indices[i]
-            break
-
-    # If no sum >= 100 is found, return the largest sum and the corresponding indices
-    if best_sum == _INF:
-        best_sum = max(dp)
-        best_indices = selected_indices[dp.index(best_sum)]
-
-    # Convert the best sum back to a percentage
-    best_sum_percentage = best_sum / scaling_factor
-    return best_sum_percentage, best_indices
+    # No combination reaches 100%; return the largest reachable sum
+    best_j = max((j for j in range(total + 1) if dp[j] <= total), default=0)
+    return dp[best_j] / scaling_factor, selected_indices[best_j]

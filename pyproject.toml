@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "guild-battle-optimizer"
+version = "1.0.0"
+description = "Optimal player assignment for FF7 Ever Crisis Guild Battles"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.10",
+    "pydantic-core>=2.27",
+]
+
+[project.scripts]
+guild-battle-optimizer = "src.main:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "black>=24.10",
+    "mypy>=1.13",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+ignore_missing_imports = true

@@ -1,9 +1,8 @@
+from pathlib import Path
+
 import pydantic_core
 
 
-def get_json_data(file_name: str) -> dict:
-    """Get JSON data from a file"""
-    with open(f"config/{file_name}", "r") as f:
-        data = f.read()
-    json_data = pydantic_core.from_json(data)
-    return json_data
+def get_json_data(path: Path) -> dict:
+    """Read and parse a JSON file, returning its contents as a dict."""
+    return pydantic_core.from_json(path.read_text(encoding="utf-8"))

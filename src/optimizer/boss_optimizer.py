@@ -1,124 +1,107 @@
 import logging
+from dataclasses import dataclass, field
 
 from src.models.BossData import BossesData
 from src.models.PlayerData import PlayersData
 from src.utils.data_utils import create_score_lists, closest_above_100_with_indices
 
+# Stage 6 unlocks after stage 5 has been beaten this many times in total.
+_STAGE6_UNLOCK_AFTER = 5
+
+
+@dataclass
+class StageState:
+    num: int
+    scores: list[float]
+    hp: float
+    locked: bool = False
+
 
 class BossOptimizer:
 
     def __init__(self, players_data: PlayersData, bosses_data: BossesData) -> None:
-        """
-        Initializes the BossOptimizer class
-        :param players_data: Data model for all players/guild members
-        :param bosses_data: Data model for all boss stages
-        """
         self.logger = logging.getLogger(__name__)
-        self.bosses_data = bosses_data
 
-        # Create lists of player scores and attempts that have the same order as the
-        # players, to easily calculate and iterate, while still keeping track of which
-        # score is which player's, since the player name and their scores share the same
-        # index in the lists.
-        # Potentially, duplicates of player names and scores could
-        # be added, in accordance to the amount of attempts the player has.
-        (
-            self.players,
-            stage1_scores,
-            stage2_scores,
-            stage3_scores,
-            stage4_scores,
-            stage5_scores,
-            # players_data.model_dump() converts the data model to a dictionary
-        ) = create_score_lists(players_data.model_dump())
+        score_map, self.players = create_score_lists(players_data.model_dump())
 
-        self.stages_scores = [
-            stage5_scores,
-            stage4_scores,
-            stage3_scores,
-            stage2_scores,
-            stage1_scores,
+        # Stages are listed highest-first so that priority order is preserved.
+        # Stage 6 is included from the start to keep its score list in sync as
+        # players are consumed, but it starts locked until the unlock condition
+        # is met.
+        all_stage_nums = sorted(
+            (int(k.removeprefix("stage")) for k in bosses_data.root),
+            reverse=True,
+        )
+        self.stages: list[StageState] = [
+            StageState(
+                num=n,
+                scores=score_map[f"stage{n}"],
+                hp=bosses_data.root[f"stage{n}"].hp,
+                locked=(n == 6),
+            )
+            for n in all_stage_nums
         ]
 
-        self.stages_hp = []
-
-        for stage in self.bosses_data.root.values():
-            self.stages_hp.append(stage.hp)
+        self._stage5_kills = 0
 
     def optimize(self) -> None:
-        """
-        Optimizes boss fights based on player and boss data models
-        """
-        # Keeps track of the amount of boss respawns
         respawn_count = 0
-
-        # Keeps track of all the of the boss stage HPs
 
         self.logger.info("Starting boss optimization...")
 
-        while len(self.players) > 0:
-
+        while self.players:
             if respawn_count != 0:
                 self.logger.info(f" *** Bosses on respawn count {respawn_count} ***")
 
-            # Optimizes each stage from 5 to 1, since the higher the stage, the more
-            # score and difficulty the boss fight will have, which means higher stages
-            # will always be prioritized over lower stages
-            for i, stage_scores in enumerate(self.stages_scores):
-                result_sum, result_indices = self.optimize_stage(stage_scores)
-                self.stages_hp[i] -= result_sum
+            # Snapshot which stages are active at the start of this round.
+            # Stages that unlock mid-round (e.g. stage 6) are not yet expected
+            # to be cleared, so they must not affect the end-of-round check.
+            round_active = [s for s in self.stages if not s.locked]
 
-                # Shows different messages depending on whether the boss stage is
-                # efficiently killed or not
-                if self.stages_hp[i] <= 0:
+            for stage in self.stages:
+                if stage.locked:
+                    continue
+
+                result_sum, result_indices = closest_above_100_with_indices(stage.scores)
+                stage.hp -= result_sum
+
+                player_names = [self.players[i] for i in result_indices]
+                if stage.hp <= 0:
+                    stage.hp = 0.0
                     self.logger.info(
-                        f"Boss stage {i + 1} can be efficiently killed by the "
-                        f"players: {[self.players[result_index] 
-                                     for result_index in result_indices]} "
-                        f"with a sum of {result_sum}%"
+                        f"Boss stage {stage.num} efficiently killed by {player_names} "
+                        f"with a sum of {result_sum:.2f}%"
                     )
-                    self.stages_hp[i] = 0.0
+                    if stage.num == 5:
+                        self._on_stage5_kill()
                 else:
                     self.logger.info(
-                        f"Boss stage {i + 1} can be taken down to {self.stages_hp[i]}% "
-                        f"by the players: {[self.players
-                        [result_index] for result_index in result_indices]} "
-                        f"with a sum of {result_sum}%"
+                        f"Boss stage {stage.num} taken to {stage.hp:.2f}% HP remaining "
+                        f"by {player_names} with a sum of {result_sum:.2f}%"
                     )
 
-                self.remove_used_attempts(result_indices)
+                self._remove_used_attempts(result_indices)
 
-            if sum(self.stages_hp) == 0:
-                self.logger.info("All boss stages have been taken down 😁")
-                # The [1] at the end of the enumerate() is to skip the first element,
-                # since the objective is to edit the value, and we don't need to get it
-                for index, hp in enumerate(self.stages_hp):
-                    self.stages_hp[index] = 100.0
+            if all(s.hp == 0.0 for s in round_active):
+                self.logger.info("All active boss stages have been taken down!")
+                for stage in self.stages:
+                    stage.hp = 100.0
                 respawn_count += 1
             else:
-                self.logger.info("Not all boss stages were able to be taken down 😕")
+                self.logger.info("Not all boss stages could be taken down.")
                 break
 
-    def optimize_stage(self, scores: list) -> tuple[float, list[int]]:
-        """
-        Optimizes a specific stage of the boss fight
-        :param scores: List of player scores for the current stage
-        """
-        # Since there are multiple attempts for each player, we need to create a version
+    def _on_stage5_kill(self) -> None:
+        self._stage5_kills += 1
+        stage6 = next((s for s in self.stages if s.num == 6), None)
+        if stage6 is not None and stage6.locked and self._stage5_kills >= _STAGE6_UNLOCK_AFTER:
+            stage6.locked = False
+            self.logger.info(f"Stage 6 unlocked after {self._stage5_kills} stage 5 kills!")
 
-        # Calculates the sum of the scores and the indices of the scores that pass 100%
-        # and are the closest to 100%, or the sum of the scores if they don't pass 100%
-        result_sum, result_indices = closest_above_100_with_indices(scores)
-
-        return result_sum, result_indices
-
-    def remove_used_attempts(self, indices: list) -> None:
-        """
-        Removes the used attempts from all the lists (players, stages scores, etc.)
-        :param indices: List of indices of the players that were used
-        """
-        indices.sort(reverse=True)
-        for index in indices:
+    def _remove_used_attempts(self, indices: list[int]) -> None:
+        # Always update all stage score lists (including locked ones) so that
+        # every list stays aligned with self.players.
+        for index in sorted(indices, reverse=True):
             self.players.pop(index)
-            for i, stage_scores in enumerate(self.stages_scores):
-                stage_scores.pop(index)
+            for stage in self.stages:
+                stage.scores.pop(index)

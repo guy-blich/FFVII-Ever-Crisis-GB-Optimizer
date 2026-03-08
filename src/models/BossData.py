@@ -1,20 +1,20 @@
-from typing import Any, Self
+from typing import Any
 
 from pydantic import BaseModel, RootModel, field_validator
 
 
 class BossData(BaseModel):
-    """Data Model for a single boss stage"""
+    """Data model for a single boss stage."""
 
     hp: float
     deaths: int
 
     @field_validator("hp", mode="before")
-    def convert_percentages(cls, hp: Any) -> Self:
-        """Validates the data model and converts percentages to floats in case they are present"""
-
-        if type(hp) is str and hp.endswith("%"):
-            hp = float(hp[:-1])
+    @classmethod
+    def convert_percentage(cls, hp: Any) -> float:
+        """Strips a trailing '%' and converts the value to float."""
+        if isinstance(hp, str) and hp.endswith("%"):
+            return float(hp[:-1])
         return hp
 
 
