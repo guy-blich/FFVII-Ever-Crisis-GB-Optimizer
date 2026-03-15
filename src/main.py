@@ -16,20 +16,11 @@ def _parse_args() -> argparse.Namespace:
         description="Optimal player assignment for FF7 Ever Crisis Guild Battles.",
     )
     parser.add_argument(
-        "--players",
-        "-p",
-        type=Path,
-        default=_DEFAULT_CONFIG / "player_data.json",
-        metavar="FILE",
-        help="Path to the player data JSON file (default: config/player_data.json)",
-    )
-    parser.add_argument(
-        "--bosses",
-        "-b",
-        type=Path,
-        default=_DEFAULT_CONFIG / "boss_data.json",
-        metavar="FILE",
-        help="Path to the boss data JSON file (default: config/boss_data.json)",
+        "--source",
+        choices=["json", "sheets"],
+        default="json",
+        metavar="SOURCE",
+        help="Data source: 'json' (local files) or 'sheets' (Google Sheets). Default: json",
     )
     parser.add_argument(
         "--log-level",
@@ -38,15 +29,84 @@ def _parse_args() -> argparse.Namespace:
         metavar="LEVEL",
         help="Logging verbosity (default: INFO)",
     )
+
+    json_group = parser.add_argument_group("JSON source options")
+    json_group.add_argument(
+        "--players",
+        "-p",
+        type=Path,
+        default=_DEFAULT_CONFIG / "player_data.json",
+        metavar="FILE",
+        help="Path to player data JSON (default: config/player_data.json)",
+    )
+    json_group.add_argument(
+        "--bosses",
+        "-b",
+        type=Path,
+        default=_DEFAULT_CONFIG / "boss_data.json",
+        metavar="FILE",
+        help="Path to boss data JSON (default: config/boss_data.json)",
+    )
+
+    sheets_group = parser.add_argument_group("Google Sheets source options")
+    sheets_group.add_argument(
+        "--sheet-id",
+        metavar="ID",
+        help="Google Sheet ID (found in the sheet URL)",
+    )
+    sheets_group.add_argument(
+        "--credentials",
+        type=Path,
+        default=Path("credentials.json"),
+        metavar="FILE",
+        help="Path to service account credentials JSON (default: credentials.json)",
+    )
+    sheets_group.add_argument(
+        "--players-tab",
+        default="Players",
+        metavar="TAB",
+        help="Sheet tab name for player data (default: Players)",
+    )
+    sheets_group.add_argument(
+        "--bosses-tab",
+        default="Bosses",
+        metavar="TAB",
+        help="Sheet tab name for boss data (default: Bosses)",
+    )
+
     return parser.parse_args()
+
+
+def _load_from_json(args: argparse.Namespace) -> tuple[dict, dict]:
+    return get_json_data(args.players), get_json_data(args.bosses)
+
+
+def _load_from_sheets(args: argparse.Namespace) -> tuple[dict, dict]:
+    from src.utils.sheets_utils import open_sheet, get_player_data, get_boss_data
+
+    if not args.sheet_id:
+        raise SystemExit(
+            "error: --sheet-id is required when using --source sheets\n"
+            "  Example: --sheet-id 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms"
+        )
+    sheet = open_sheet(args.sheet_id, args.credentials)
+    return get_player_data(sheet, args.players_tab), get_boss_data(sheet, args.bosses_tab)
+
+
+_LOADERS = {
+    "json": _load_from_json,
+    "sheets": _load_from_sheets,
+}
 
 
 def main() -> None:
     args = _parse_args()
     setup_logger(level=args.log_level)
 
-    players_data = PlayersData.model_validate(get_json_data(args.players))
-    bosses_data = BossesData.model_validate(get_json_data(args.bosses))
+    players_raw, bosses_raw = _LOADERS[args.source](args)
+
+    players_data = PlayersData.model_validate(players_raw)
+    bosses_data = BossesData.model_validate(bosses_raw)
 
     optimizer = BossOptimizer(players_data, bosses_data)
     optimizer.optimize()

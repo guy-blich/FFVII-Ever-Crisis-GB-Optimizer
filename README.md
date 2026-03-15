@@ -50,7 +50,9 @@ guild-battle-optimizer/
 ├── tests/                   # pytest test suite
 ├── logs/                    # Rotating log output
 ├── pyproject.toml
-└── requirements.txt
+├── requirements.txt
+├── requirements-dev.txt
+└── requirements-sheets.txt  # optional Google Sheets dependency
 ```
 
 ---
@@ -60,10 +62,13 @@ guild-battle-optimizer/
 **Requirements:** Python 3.11+
 
 ```bash
-# Install runtime dependencies
+# Runtime only (JSON source)
 pip install -r requirements.txt
 
-# Install dev dependencies (includes pytest, black, mypy)
+# With Google Sheets support
+pip install -r requirements-sheets.txt
+
+# Dev tools (pytest, black, mypy)
 pip install -r requirements-dev.txt
 ```
 
@@ -71,32 +76,80 @@ pip install -r requirements-dev.txt
 
 ## Usage
 
-### Run with default config files
+### JSON source (default)
 
 ```bash
+# Use the default config files
 python -m src.main
-```
 
-### Specify custom data files
-
-```bash
+# Specify custom files
 python -m src.main --players path/to/player_data.json --bosses path/to/boss_data.json
 ```
 
-### Change log verbosity
+### Google Sheets source
 
 ```bash
-python -m src.main --log-level DEBUG
+python -m src.main --source sheets \
+    --sheet-id YOUR_SHEET_ID \
+    --credentials credentials.json
 ```
 
-```
-usage: guild-battle-optimizer [-h] [--players FILE] [--bosses FILE] [--log-level LEVEL]
+Custom tab names (defaults are `Players` and `Bosses`):
 
-options:
-  --players FILE, -p FILE   Path to player data JSON (default: config/player_data.json)
-  --bosses FILE,  -b FILE   Path to boss data JSON  (default: config/boss_data.json)
-  --log-level LEVEL         DEBUG | INFO | WARNING | ERROR (default: INFO)
+```bash
+python -m src.main --source sheets \
+    --sheet-id YOUR_SHEET_ID \
+    --credentials credentials.json \
+    --players-tab "Guild Members" \
+    --bosses-tab "Boss HP"
 ```
+
+### All options
+
+```
+usage: guild-battle-optimizer [-h] [--source SOURCE] [--log-level LEVEL]
+                              [--players FILE] [--bosses FILE]
+                              [--sheet-id ID] [--credentials FILE]
+                              [--players-tab TAB] [--bosses-tab TAB]
+
+JSON source options:
+  --players FILE, -p    Path to player data JSON (default: config/player_data.json)
+  --bosses FILE,  -b    Path to boss data JSON   (default: config/boss_data.json)
+
+Google Sheets source options:
+  --sheet-id ID         Google Sheet ID (from the URL)
+  --credentials FILE    Service account credentials JSON (default: credentials.json)
+  --players-tab TAB     Sheet tab for player data (default: Players)
+  --bosses-tab TAB      Sheet tab for boss data   (default: Bosses)
+```
+
+---
+
+## Google Sheets setup
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/) → create a project → enable the **Google Sheets API**.
+2. Create a **Service Account** → generate a JSON key → save it as `credentials.json` (keep this out of version control).
+3. Share your Google Sheet with the service account email (e.g. `optimizer@my-project.iam.gserviceaccount.com`) as **Viewer** or **Editor**.
+4. Copy the Sheet ID from the URL: `https://docs.google.com/spreadsheets/d/`**`THIS_PART`**`/edit`
+
+**Players tab** — one row per player, with these column headers:
+
+| player | stage1 | stage2 | stage3 | stage4 | stage5 | stage6 | attempts |
+|--------|--------|--------|--------|--------|--------|--------|----------|
+| Alice  | 100    | 90     | 70     | 40     | 20     | 10     | 3        |
+
+Headers are case-insensitive and spaces are ignored. Scores can be plain numbers or `%` strings.
+
+**Bosses tab** — one row per stage:
+
+| stage  | hp   | deaths |
+|--------|------|--------|
+| stage1 | 100% | 0      |
+| stage5 | 75%  | 1      |
+
+The `stage` column accepts `stage1`, `Stage 1`, or just `1`.
+
+> **Note:** `credentials.json` is listed in `.gitignore` — never commit it.
 
 ---
 
@@ -145,7 +198,7 @@ Current HP for each boss stage (updated after each battle if bosses are mid-figh
 python -m pytest tests/ -v
 ```
 
-43 tests cover the DP algorithm, Pydantic model validation (including `%`-string parsing), score list expansion, the full optimizer loop, and all stage 6 unlock mechanics.
+55 tests cover the DP algorithm, Pydantic model validation (including `%`-string parsing), score list expansion, the full optimizer loop, stage 6 unlock mechanics, and the Google Sheets integration (fully mocked — no network required).
 
 ---
 
