@@ -41,20 +41,28 @@ def closest_above_100_with_indices(scores: list[float]) -> tuple[float, list[int
     _INF = total + 1
     dp = [_INF] * (total + 1)
     dp[0] = 0
-    selected_indices: list[list[int]] = [[] for _ in range(total + 1)]
+    # pred[j] stores (prev_j, item_index) for path reconstruction; avoids copying
+    # index lists on every DP update.
+    pred: list[tuple[int, int] | None] = [None] * (total + 1)
 
     for i, score in enumerate(scaled):
         for j in range(total, score - 1, -1):
             candidate = dp[j - score] + score
             if candidate < dp[j]:
                 dp[j] = candidate
-                selected_indices[j] = selected_indices[j - score] + [i]
+                pred[j] = (j - score, i)
 
-    # Find the minimum sum >= target
+    def _backtrack(j: int) -> list[int]:
+        indices: list[int] = []
+        while pred[j] is not None:
+            prev_j, item_i = pred[j]
+            indices.append(item_i)
+            j = prev_j
+        return indices
+
     for j in range(target, total + 1):
         if dp[j] <= total:
-            return dp[j] / scaling_factor, selected_indices[j]
+            return dp[j] / scaling_factor, _backtrack(j)
 
-    # No combination reaches 100%; return the largest reachable sum
     best_j = max((j for j in range(total + 1) if dp[j] <= total), default=0)
-    return dp[best_j] / scaling_factor, selected_indices[best_j]
+    return dp[best_j] / scaling_factor, _backtrack(best_j)
