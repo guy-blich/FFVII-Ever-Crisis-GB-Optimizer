@@ -14,10 +14,10 @@ class BossData(BaseModel):
     def convert_percentage(cls, hp: Any) -> float:
         if isinstance(hp, str) and hp.endswith("%"):
             return float(hp[:-1])
-        return hp
+        return float(hp)
 
 
-class BossesData(RootModel):
+class BossesData(RootModel[dict[str, BossData]]):
     """Data model for all boss stages"""
 
     root: dict[str, BossData]

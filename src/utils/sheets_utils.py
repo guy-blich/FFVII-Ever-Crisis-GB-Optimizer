@@ -9,7 +9,7 @@ Authentication uses a Google service account. See README for setup instructions.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     import gspread
@@ -35,10 +35,10 @@ def open_sheet(sheet_id: str, credentials_path: Path) -> "gspread.Spreadsheet":
     return client.open_by_key(sheet_id)
 
 
-def get_player_data(sheet: "gspread.Spreadsheet", tab_name: str) -> dict:
+def get_player_data(sheet: "gspread.Spreadsheet", tab_name: str) -> dict[str, Any]:
     """Read the Players tab and return a player_data dict. Headers are case-insensitive."""
     records = sheet.worksheet(tab_name).get_all_records()
-    players: dict = {}
+    players: dict[str, Any] = {}
     for row in records:
         row = {k.lower().replace(" ", ""): v for k, v in row.items()}
         name = str(row["player"]).strip()
@@ -56,10 +56,10 @@ def get_player_data(sheet: "gspread.Spreadsheet", tab_name: str) -> dict:
     return players
 
 
-def get_boss_data(sheet: "gspread.Spreadsheet", tab_name: str) -> dict:
+def get_boss_data(sheet: "gspread.Spreadsheet", tab_name: str) -> dict[str, Any]:
     """Read the Bosses tab and return a boss_data dict. Stage names are normalized to 'stageN'."""
     records = sheet.worksheet(tab_name).get_all_records()
-    bosses: dict = {}
+    bosses: dict[str, Any] = {}
     for row in records:
         row = {k.lower().replace(" ", ""): v for k, v in row.items()}
         # Normalize "Stage 1" / "stage 1" / "1" → "stage1"

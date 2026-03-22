@@ -1,5 +1,6 @@
 import argparse
 from pathlib import Path
+from typing import Any
 
 from src.models.BossData import BossesData
 from src.models.PlayerData import PlayersData
@@ -77,11 +78,11 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _load_from_json(args: argparse.Namespace) -> tuple[dict, dict]:
+def _load_from_json(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, Any]]:
     return get_json_data(args.players), get_json_data(args.bosses)
 
 
-def _load_from_sheets(args: argparse.Namespace) -> tuple[dict, dict]:
+def _load_from_sheets(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, Any]]:
     from src.utils.sheets_utils import open_sheet, get_player_data, get_boss_data
 
     if not args.sheet_id:

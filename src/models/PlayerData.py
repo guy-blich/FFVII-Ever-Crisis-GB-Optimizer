@@ -19,10 +19,10 @@ class PlayerData(BaseModel):
     def convert_percentage(cls, value: Any) -> float:
         if isinstance(value, str) and value.endswith("%"):
             return float(value[:-1])
-        return value
+        return float(value)
 
 
-class PlayersData(RootModel):
+class PlayersData(RootModel[dict[str, PlayerData]]):
     """Data model for all players/guild members."""
 
     root: dict[str, PlayerData]

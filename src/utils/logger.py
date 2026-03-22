@@ -29,7 +29,6 @@ _LOGGING_CONFIG = {
             "backupCount": 5,
         },
     },
-    # "src" is the parent of all project loggers; child loggers propagate here.
     "loggers": {
         "src": {
             "level": "INFO",
@@ -42,6 +41,6 @@ _LOGGING_CONFIG = {
 
 def setup_logger(level: str = "INFO") -> None:
     """Configure project-wide logging. Call once at program startup."""
-    _LOGGING_CONFIG["loggers"]["src"]["level"] = level
+    _LOGGING_CONFIG["loggers"]["src"]["level"] = level  # type: ignore[index]
     _LOGGING_CONFIG["handlers"]["console"]["level"] = level  # type: ignore[index]
     logging.config.dictConfig(_LOGGING_CONFIG)

@@ -1,5 +1,8 @@
+from typing import Any
+
+
 def create_score_lists(
-    players_data: dict,
+    players_data: dict[str, Any],
 ) -> tuple[dict[str, list[float]], list[str]]:
     """
     Expands each player by their attempt count into parallel score lists.
@@ -54,10 +57,12 @@ def closest_above_100_with_indices(scores: list[float]) -> tuple[float, list[int
 
     def _backtrack(j: int) -> list[int]:
         indices: list[int] = []
-        while pred[j] is not None:
-            prev_j, item_i = pred[j]
+        entry = pred[j]
+        while entry is not None:
+            prev_j, item_i = entry
             indices.append(item_i)
             j = prev_j
+            entry = pred[j]
         return indices
 
     for j in range(target, total + 1):
