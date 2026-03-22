@@ -36,13 +36,7 @@ def open_sheet(sheet_id: str, credentials_path: Path) -> "gspread.Spreadsheet":
 
 
 def get_player_data(sheet: "gspread.Spreadsheet", tab_name: str) -> dict:
-    """Read player data from a sheet tab and return a player_data dict.
-
-    Expected column headers (case-insensitive, spaces ignored):
-        player | stage1 | stage2 | stage3 | stage4 | stage5 | stage6 | attempts
-
-    Scores may be plain numbers (63.5) or percentage strings ("63.5%").
-    """
+    """Read the Players tab and return a player_data dict. Headers are case-insensitive."""
     records = sheet.worksheet(tab_name).get_all_records()
     players: dict = {}
     for row in records:
@@ -63,14 +57,7 @@ def get_player_data(sheet: "gspread.Spreadsheet", tab_name: str) -> dict:
 
 
 def get_boss_data(sheet: "gspread.Spreadsheet", tab_name: str) -> dict:
-    """Read boss data from a sheet tab and return a boss_data dict.
-
-    Expected column headers (case-insensitive, spaces ignored):
-        stage | hp | deaths
-
-    Stage values like "Stage 1", "stage1", or "1" are all accepted.
-    HP may be a plain number or a percentage string ("75%").
-    """
+    """Read the Bosses tab and return a boss_data dict. Stage names are normalized to 'stageN'."""
     records = sheet.worksheet(tab_name).get_all_records()
     bosses: dict = {}
     for row in records:

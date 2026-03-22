@@ -17,7 +17,6 @@ class PlayerData(BaseModel):
     @field_validator("stage1", "stage2", "stage3", "stage4", "stage5", "stage6", mode="before")
     @classmethod
     def convert_percentage(cls, value: Any) -> float:
-        """Strips a trailing '%' and converts the value to float."""
         if isinstance(value, str) and value.endswith("%"):
             return float(value[:-1])
         return value

@@ -24,10 +24,6 @@ class BossOptimizer:
 
         score_map, self.players = create_score_lists(players_data.model_dump())
 
-        # Stages are listed highest-first so that priority order is preserved.
-        # Stage 6 is included from the start to keep its score list in sync as
-        # players are consumed, but it starts locked until the unlock condition
-        # is met.
         all_stage_nums = sorted(
             (int(k.removeprefix("stage")) for k in bosses_data.root),
             reverse=True,
@@ -53,9 +49,8 @@ class BossOptimizer:
             if respawn_count != 0:
                 self.logger.info(f" *** Bosses on respawn count {respawn_count} ***")
 
-            # Snapshot which stages are active at the start of this round.
-            # Stages that unlock mid-round (e.g. stage 6) are not yet expected
-            # to be cleared, so they must not affect the end-of-round check.
+            # Snapshot active stages before the round so a mid-round unlock
+            # (stage 6) doesn't affect this round's clear check.
             round_active = [s for s in self.stages if not s.locked]
 
             for stage in self.stages:
@@ -99,8 +94,7 @@ class BossOptimizer:
             self.logger.info(f"Stage 6 unlocked after {self._stage5_kills} stage 5 kills!")
 
     def _remove_used_attempts(self, indices: list[int]) -> None:
-        # Always update all stage score lists (including locked ones) so that
-        # every list stays aligned with self.players.
+        # Update all lists including locked stages to keep them aligned with self.players.
         for index in sorted(indices, reverse=True):
             self.players.pop(index)
             for stage in self.stages:

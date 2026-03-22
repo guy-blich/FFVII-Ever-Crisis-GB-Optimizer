@@ -2,15 +2,8 @@ def create_score_lists(
     players_data: dict,
 ) -> tuple[dict[str, list[float]], list[str]]:
     """
-    Builds parallel lists of player names and per-stage scores, expanding each
-    player's entry by their number of attempts so that each attempt is treated
-    as an independent slot.
-
-    Stage keys are detected from the data, so adding a new stage only requires
-    updated config files and model fields — no code changes here.
-
-    Returns a dict mapping stage key → list of scores, and the corresponding
-    player name list (same length and order as each score list).
+    Expands each player by their attempt count into parallel score lists.
+    Returns a dict mapping stage key → scores, and the corresponding player name list.
     """
     first_player = next(iter(players_data.values()))
     stage_keys = sorted(
@@ -32,11 +25,9 @@ def create_score_lists(
 
 def closest_above_100_with_indices(scores: list[float]) -> tuple[float, list[int]]:
     """
-    Finds the minimum subset of scores whose sum is >= 100 (closest kill).
-    Falls back to the largest achievable sum when 100 cannot be reached.
-
-    Uses a 0/1 knapsack DP scaled to integers to avoid floating-point issues.
-    Returns (sum_percentage, list_of_indices).
+    0/1 knapsack: finds the minimum subset of scores summing to >= 100.
+    Falls back to the largest reachable sum if 100 is not achievable.
+    Scores are scaled to integers to avoid floating-point issues.
     """
     if not scores:
         return 0.0, []
