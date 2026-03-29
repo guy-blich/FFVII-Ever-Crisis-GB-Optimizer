@@ -36,16 +36,15 @@ def _mock_dp(scores: list) -> tuple[float, list[int]]:
 class TestBossOptimizerInit:
     def test_stages_in_priority_order(self, simple_boss_data, simple_player_data):
         opt = BossOptimizer(simple_player_data, simple_boss_data)
-        assert [s.num for s in opt.stages] == [6, 5, 4, 3, 2, 1]
+        assert list(opt.stages.keys()) == [6, 5, 4, 3, 2, 1]
 
     def test_stage6_starts_locked(self, simple_boss_data, simple_player_data):
         opt = BossOptimizer(simple_player_data, simple_boss_data)
-        stage6 = next(s for s in opt.stages if s.num == 6)
-        assert stage6.locked is True
+        assert opt.stages[6].locked is True
 
     def test_stages_1_to_5_start_unlocked(self, simple_boss_data, simple_player_data):
         opt = BossOptimizer(simple_player_data, simple_boss_data)
-        unlocked = [s for s in opt.stages if not s.locked]
+        unlocked = [s for s in opt.stages.values() if not s.locked]
         assert [s.num for s in unlocked] == [5, 4, 3, 2, 1]
 
     def test_player_list_length_matches_total_attempts(self, simple_boss_data, simple_player_data):
@@ -55,14 +54,14 @@ class TestBossOptimizerInit:
 
     def test_scores_length_matches_players(self, simple_boss_data, simple_player_data):
         opt = BossOptimizer(simple_player_data, simple_boss_data)
-        for stage in opt.stages:
+        for stage in opt.stages.values():
             assert len(stage.scores) == len(opt.players)
 
     def test_stage_hp_loaded_correctly(self):
         bosses = _make_bosses(hp=75.0)
         players = _make_players(p1={**_FULL_SCORES, "attempts": 1})
         opt = BossOptimizer(players, bosses)
-        for stage in opt.stages:
+        for stage in opt.stages.values():
             assert stage.hp == 75.0
 
 
@@ -81,7 +80,7 @@ class TestBossOptimizerOptimize:
         bosses = _make_bosses(hp=100.0)
         opt = BossOptimizer(players, bosses)
         opt.optimize()
-        assert any(s.hp > 0.0 for s in opt.stages if not s.locked)
+        assert any(s.hp > 0.0 for s in opt.stages.values() if not s.locked)
 
     def test_optimize_removes_used_players(self):
         players = _make_players(p1={**_FULL_SCORES, "attempts": 2})
@@ -107,7 +106,7 @@ class TestBossOptimizerOptimize:
         bosses = _make_bosses(hp=100.0)
         opt = BossOptimizer(players, bosses)
         opt.optimize()
-        stage6 = next(s for s in opt.stages if s.num == 6)
+        stage6 = opt.stages[6]
         assert len(stage6.scores) == len(opt.players)
 
 
@@ -127,7 +126,7 @@ class TestStage6Unlock:
     def test_stage6_unlocks_at_threshold(self):
         """_on_stage5_kill() unlocks stage 6 exactly at the threshold."""
         opt = self._make_opt(num_players=1)
-        stage6 = next(s for s in opt.stages if s.num == 6)
+        stage6 = opt.stages[6]
 
         for _ in range(_STAGE6_UNLOCK_AFTER - 1):
             opt._on_stage5_kill()
@@ -139,7 +138,7 @@ class TestStage6Unlock:
     def test_stage6_does_not_unlock_again_once_unlocked(self):
         """Calling _on_stage5_kill() beyond the threshold keeps stage 6 unlocked."""
         opt = self._make_opt(num_players=1)
-        stage6 = next(s for s in opt.stages if s.num == 6)
+        stage6 = opt.stages[6]
 
         for _ in range(_STAGE6_UNLOCK_AFTER + 3):
             opt._on_stage5_kill()
@@ -160,7 +159,7 @@ class TestStage6Unlock:
         with patch(_DP_TARGET, side_effect=_mock_dp):
             opt = self._make_opt(num_players=5)
             opt.optimize()
-        stage6 = next(s for s in opt.stages if s.num == 6)
+        stage6 = opt.stages[6]
         assert stage6.locked is True
 
     def test_stage6_unlocks_during_optimize(self, caplog):

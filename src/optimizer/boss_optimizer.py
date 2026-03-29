@@ -1,5 +1,5 @@
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from src.models.BossData import BossesData
 from src.models.PlayerData import PlayersData
@@ -24,19 +24,18 @@ class BossOptimizer:
 
         score_map, self.players = create_score_lists(players_data.model_dump())
 
-        all_stage_nums = sorted(
-            (int(k.removeprefix("stage")) for k in bosses_data.root),
-            reverse=True,
-        )
-        self.stages: list[StageState] = [
-            StageState(
+        self.stages: dict[int, StageState] = {
+            n: StageState(
                 num=n,
                 scores=score_map[f"stage{n}"],
                 hp=bosses_data.root[f"stage{n}"].hp,
                 locked=(n == 6),
             )
-            for n in all_stage_nums
-        ]
+            for n in sorted(
+                (int(k.removeprefix("stage")) for k in bosses_data.root),
+                reverse=True,
+            )
+        }
 
         self._stage5_kills = 0
 
@@ -51,9 +50,9 @@ class BossOptimizer:
 
             # Snapshot active stages before the round so a mid-round unlock
             # (stage 6) doesn't affect this round's clear check.
-            round_active = [s for s in self.stages if not s.locked]
+            round_active = [s for s in self.stages.values() if not s.locked]
 
-            for stage in self.stages:
+            for stage in self.stages.values():
                 if stage.locked:
                     continue
 
@@ -79,7 +78,7 @@ class BossOptimizer:
 
             if all(s.hp == 0.0 for s in round_active):
                 self.logger.info("All active boss stages have been taken down!")
-                for stage in self.stages:
+                for stage in self.stages.values():
                     stage.hp = 100.0
                 respawn_count += 1
             else:
@@ -88,7 +87,7 @@ class BossOptimizer:
 
     def _on_stage5_kill(self) -> None:
         self._stage5_kills += 1
-        stage6 = next((s for s in self.stages if s.num == 6), None)
+        stage6 = self.stages.get(6)
         if stage6 is not None and stage6.locked and self._stage5_kills >= _STAGE6_UNLOCK_AFTER:
             stage6.locked = False
             self.logger.info(f"Stage 6 unlocked after {self._stage5_kills} stage 5 kills!")
@@ -97,5 +96,5 @@ class BossOptimizer:
         # Update all lists including locked stages to keep them aligned with self.players.
         for index in sorted(indices, reverse=True):
             self.players.pop(index)
-            for stage in self.stages:
+            for stage in self.stages.values():
                 stage.scores.pop(index)
