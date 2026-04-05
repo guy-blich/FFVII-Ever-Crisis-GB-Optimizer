@@ -37,7 +37,14 @@ class BossOptimizer:
             )
         }
 
-        self._stage5_kills = 0
+        # Pre-seed the kill counter from config so the optimizer can be started
+        # mid-battle (e.g. stage 5 has already been killed 3 times today).
+        stage5 = bosses_data.root.get("stage5")
+        self._stage5_kills = stage5.deaths if stage5 is not None else 0
+
+        # If the threshold is already met, unlock stage 6 immediately.
+        if self._stage5_kills >= _STAGE6_UNLOCK_AFTER and 6 in self.stages:
+            self.stages[6].locked = False
 
     def optimize(self) -> None:
         respawn_count = 0

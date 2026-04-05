@@ -200,3 +200,47 @@ class TestStage6Unlock:
 
     def test_unlock_threshold_constant(self):
         assert _STAGE6_UNLOCK_AFTER == 5
+
+
+class TestMidBattleInit:
+    """Tests for starting the optimizer mid-battle using deaths from boss_data."""
+
+    def _make_bosses_with_deaths(self, stage5_deaths: int) -> BossesData:
+        data = {f"stage{i}": {"hp": "100%", "deaths": 0} for i in range(1, 7)}
+        data["stage5"]["deaths"] = stage5_deaths
+        return BossesData.model_validate(data)
+
+    def _make_players(self, n: int = 1) -> PlayersData:
+        return PlayersData.model_validate(
+            {f"p{i}": {**_FULL_SCORES, "attempts": 1} for i in range(1, n + 1)}
+        )
+
+    def test_stage5_deaths_preseed_kill_counter(self):
+        bosses = self._make_bosses_with_deaths(stage5_deaths=3)
+        opt = BossOptimizer(self._make_players(), bosses)
+        assert opt._stage5_kills == 3
+
+    def test_stage6_stays_locked_when_deaths_below_threshold(self):
+        bosses = self._make_bosses_with_deaths(stage5_deaths=_STAGE6_UNLOCK_AFTER - 1)
+        opt = BossOptimizer(self._make_players(), bosses)
+        assert opt.stages[6].locked is True
+
+    def test_stage6_unlocked_at_init_when_deaths_meet_threshold(self):
+        bosses = self._make_bosses_with_deaths(stage5_deaths=_STAGE6_UNLOCK_AFTER)
+        opt = BossOptimizer(self._make_players(), bosses)
+        assert opt.stages[6].locked is False
+
+    def test_stage6_unlocked_at_init_when_deaths_exceed_threshold(self):
+        bosses = self._make_bosses_with_deaths(stage5_deaths=_STAGE6_UNLOCK_AFTER + 2)
+        opt = BossOptimizer(self._make_players(), bosses)
+        assert opt.stages[6].locked is False
+
+    def test_partial_deaths_unlock_after_fewer_kills(self):
+        """With 3 existing deaths, stage 6 unlocks after 2 more stage 5 kills."""
+        bosses = self._make_bosses_with_deaths(stage5_deaths=3)
+        opt = BossOptimizer(self._make_players(), bosses)
+        for _ in range(_STAGE6_UNLOCK_AFTER - 3 - 1):
+            opt._on_stage5_kill()
+        assert opt.stages[6].locked is True
+        opt._on_stage5_kill()
+        assert opt.stages[6].locked is False

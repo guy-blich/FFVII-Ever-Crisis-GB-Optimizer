@@ -1,5 +1,7 @@
 # Guild Battle Optimizer
 
+![CI](https://github.com/YOUR_USERNAME/GuildBattleOptimizer/actions/workflows/ci.yml/badge.svg)
+
 Assigns guild members to boss stages in FF7 Ever Crisis Guild Battles to maximize total damage dealt. Given each player's damage percentage per stage and their available attempts, the optimizer uses **0/1 knapsack dynamic programming** to find the smallest subset of player attempts whose combined damage is closest to (or exceeds) 100% of a boss stage's HP — prioritizing higher stages first.
 
 **Stage 6** is a bonus stage that unlocks after stage 5 has been beaten 5 times (cumulative across respawns). Once unlocked it becomes the highest-priority stage in every subsequent round.
