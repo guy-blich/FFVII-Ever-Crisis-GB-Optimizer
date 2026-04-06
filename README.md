@@ -1,6 +1,6 @@
 # Guild Battle Optimizer
 
-![CI](https://github.com/guy-blich/GuildBattleOptimizer/actions/workflows/ci.yml/badge.svg?branch=main)
+![CI](https://github.com/guy-blich/FFVII-Ever-Crisis-GB-Optimizer/actions/workflows/ci.yml/badge.svg?branch=main)
 
 Assigns guild members to boss stages in FF7 Ever Crisis Guild Battles to maximize total damage dealt. Given each player's damage percentage per stage and their available attempts, the optimizer uses **0/1 knapsack dynamic programming** to find the smallest subset of player attempts whose combined damage is closest to (or exceeds) 100% of a boss stage's HP — prioritizing higher stages first.
 
