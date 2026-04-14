@@ -18,10 +18,10 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--source",
-        choices=["json", "sheets"],
+        choices=["json", "csv", "sheets"],
         default="json",
         metavar="SOURCE",
-        help="Data source: 'json' (local files) or 'sheets' (Google Sheets). Default: json",
+        help="Data source: 'json', 'csv', or 'sheets'. Default: json",
     )
     parser.add_argument(
         "--log-level",
@@ -31,22 +31,22 @@ def _parse_args() -> argparse.Namespace:
         help="Logging verbosity (default: INFO)",
     )
 
-    json_group = parser.add_argument_group("JSON source options")
-    json_group.add_argument(
+    file_group = parser.add_argument_group("JSON/CSV source options")
+    file_group.add_argument(
         "--players",
         "-p",
         type=Path,
         default=_DEFAULT_CONFIG / "player_data.json",
         metavar="FILE",
-        help="Path to player data JSON (default: config/player_data.json)",
+        help="Path to player data file (default: config/player_data.json)",
     )
-    json_group.add_argument(
+    file_group.add_argument(
         "--bosses",
         "-b",
         type=Path,
         default=_DEFAULT_CONFIG / "boss_data.json",
         metavar="FILE",
-        help="Path to boss data JSON (default: config/boss_data.json)",
+        help="Path to boss data file (default: config/boss_data.json)",
     )
 
     sheets_group = parser.add_argument_group("Google Sheets source options")
@@ -82,6 +82,12 @@ def _load_from_json(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str,
     return get_json_data(args.players), get_json_data(args.bosses)
 
 
+def _load_from_csv(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, Any]]:
+    from src.utils.csv_utils import get_player_data, get_boss_data
+
+    return get_player_data(args.players), get_boss_data(args.bosses)
+
+
 def _load_from_sheets(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, Any]]:
     from src.utils.sheets_utils import open_sheet, get_player_data, get_boss_data
 
@@ -96,6 +102,7 @@ def _load_from_sheets(args: argparse.Namespace) -> tuple[dict[str, Any], dict[st
 
 _LOADERS = {
     "json": _load_from_json,
+    "csv": _load_from_csv,
     "sheets": _load_from_sheets,
 }
 
