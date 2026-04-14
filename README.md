@@ -88,6 +88,12 @@ python -m src.main
 python -m src.main --players path/to/player_data.json --bosses path/to/boss_data.json
 ```
 
+### CSV source
+
+```bash
+python -m src.main --source csv --players path/to/players.csv --bosses path/to/bosses.csv
+```
+
 ### Google Sheets source
 
 ```bash
@@ -114,9 +120,9 @@ usage: guild-battle-optimizer [-h] [--source SOURCE] [--log-level LEVEL]
                               [--sheet-id ID] [--credentials FILE]
                               [--players-tab TAB] [--bosses-tab TAB]
 
-JSON source options:
-  --players FILE, -p    Path to player data JSON (default: config/player_data.json)
-  --bosses FILE,  -b    Path to boss data JSON   (default: config/boss_data.json)
+JSON/CSV source options:
+  --players FILE, -p    Path to player data file (default: config/player_data.json)
+  --bosses FILE,  -b    Path to boss data file   (default: config/boss_data.json)
 
 Google Sheets source options:
   --sheet-id ID         Google Sheet ID (from the URL)
@@ -192,6 +198,25 @@ Current HP for each boss stage (updated after each battle if bosses are mid-figh
 }
 ```
 
+### CSV format
+
+The CSV source uses the same column headers as the Sheets source.
+
+**Players CSV:**
+
+| player | stage1 | stage2 | stage3 | stage4 | stage5 | stage6 | attempts |
+|--------|--------|--------|--------|--------|--------|--------|----------|
+| Alice  | 100    | 90     | 70     | 40     | 20     | 10     | 3        |
+
+**Bosses CSV:**
+
+| stage  | hp   | deaths |
+|--------|------|--------|
+| stage1 | 100% | 0      |
+| stage5 | 75%  | 1      |
+
+Headers are case-insensitive. Scores can be plain numbers or `%` strings. Stage names follow the same normalization as JSON (`stage1`, `Stage 1`, and `1` are all accepted).
+
 ---
 
 ## Running tests
@@ -200,7 +225,7 @@ Current HP for each boss stage (updated after each battle if bosses are mid-figh
 python -m pytest tests/ -v
 ```
 
-55 tests cover the DP algorithm, Pydantic model validation (including `%`-string parsing), score list expansion, the full optimizer loop, stage 6 unlock mechanics, and the Google Sheets integration (fully mocked — no network required).
+70 tests cover the DP algorithm, Pydantic model validation (including `%`-string parsing), score list expansion, the full optimizer loop, stage 6 unlock mechanics, CSV parsing, and the Google Sheets integration (fully mocked — no network required).
 
 ---
 
