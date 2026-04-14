@@ -11,24 +11,18 @@ from src.utils.csv_utils import get_player_data, get_boss_data
 @pytest.fixture
 def tmp_players(tmp_path: Path) -> Path:
     p = tmp_path / "players.csv"
-    p.write_text(
-        textwrap.dedent(
-            """\
+    p.write_text(textwrap.dedent("""\
         player,stage1,stage2,stage3,stage4,stage5,stage6,attempts
         Alice,100,90,70,40,20,10,3
         Bob,80%,60%,45%,25%,12%,6%,2
-    """
-        )
-    )
+    """))
     return p
 
 
 @pytest.fixture
 def tmp_bosses(tmp_path: Path) -> Path:
     p = tmp_path / "bosses.csv"
-    p.write_text(
-        textwrap.dedent(
-            """\
+    p.write_text(textwrap.dedent("""\
         stage,hp,deaths
         stage1,100%,0
         Stage 2,75%,1
@@ -36,9 +30,7 @@ def tmp_bosses(tmp_path: Path) -> Path:
         stage4,100%,0
         stage5,100%,0
         stage6,100%,0
-    """
-        )
-    )
+    """))
     return p
 
 
