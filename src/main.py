@@ -85,7 +85,11 @@ def _load_from_json(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str,
 def _load_from_csv(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, Any]]:
     from src.utils.csv_utils import get_player_data, get_boss_data
 
-    return get_player_data(args.players), get_boss_data(args.bosses)
+    players = get_player_data(args.players)
+    bosses = (
+        get_json_data(args.bosses) if args.bosses.suffix == ".json" else get_boss_data(args.bosses)
+    )
+    return players, bosses
 
 
 def _load_from_sheets(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, Any]]:
