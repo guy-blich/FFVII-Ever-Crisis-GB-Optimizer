@@ -35,33 +35,40 @@ def closest_above_100_with_indices(scores: list[float]) -> tuple[float, list[int
     if not scores:
         return 0.0, []
 
-    # Multiply by 1000 so fractional percentages (e.g. 63.5%) become integers.
-    # The DP works on integer indices, so floating-point scores must be scaled first.
-    scaling_factor = 1000
-    scaled = [int(s * scaling_factor) for s in scores]
-    total = sum(scaled)
+    # Scale by 100 so two-decimal percentages (e.g. 63.5%, 1.27%) become integers.
+    # round() avoids int() truncation from floating-point imprecision (e.g. 1.27*100 = 126.99...).
+    scaling_factor = 100
+    scaled = [round(s * scaling_factor) for s in scores]
     target = 100 * scaling_factor
+    total = sum(scaled)
 
-    # dp[j] answers "what is the smallest sum of selected players that lands exactly
-    # on j?". Most entries start at _INF (unreachable). dp[0] = 0 because using
-    # nobody deals exactly 0%.
-    _INF = total + 1
-    dp = [_INF] * (total + 1)
+    # The minimum reachable sum >= target is provably < target + max(scaled):
+    # if subset S reaches the minimum, removing its last element gives a sum < target,
+    # so the last element's value is < target + max(scaled) - (S - max(scaled)) ... i.e.
+    # S < target + max(scaled). We cap the DP table here so it stays O(n * target)
+    # instead of O(n * total), which matters when many players have 100% scores.
+    cap = min(total, target + max(scaled))
+
+    _INF = cap + 1
+    dp = [_INF] * (cap + 1)
     dp[0] = 0
 
     # pred[j] = (prev_j, player_index): records which player was added last to reach
     # sum j, and what the sum was before adding them. Used to reconstruct the player
     # list after the DP without storing full index lists at every cell.
-    pred: list[tuple[int, int] | None] = [None] * (total + 1)
+    pred: list[tuple[int, int] | None] = [None] * (cap + 1)
 
     for i, score in enumerate(scaled):
         # Iterate backwards so each player can only be selected once (0/1 knapsack).
         # Going forwards would allow the same player to be picked multiple times.
-        for j in range(total, score - 1, -1):
-            candidate = dp[j - score] + score
+        for j in range(min(cap, total), score - 1, -1):
+            prev = j - score
+            if prev < 0 or dp[prev] >= _INF:
+                continue
+            candidate = dp[prev] + score
             if candidate < dp[j]:
                 dp[j] = candidate
-                pred[j] = (j - score, i)
+                pred[j] = (prev, i)
 
     def _backtrack(j: int) -> list[int]:
         # Follow the pred chain from target sum back to 0, collecting the player
@@ -77,9 +84,9 @@ def closest_above_100_with_indices(scores: list[float]) -> tuple[float, list[int
 
     # Return the minimum reachable sum >= 100%, or the best available if 100% is
     # not achievable (e.g. not enough players left to kill the stage).
-    for j in range(target, total + 1):
-        if dp[j] <= total:
+    for j in range(target, cap + 1):
+        if dp[j] < _INF:
             return dp[j] / scaling_factor, _backtrack(j)
 
-    best_j = max((j for j in range(total + 1) if dp[j] <= total), default=0)
+    best_j = max((j for j in range(cap + 1) if dp[j] < _INF), default=0)
     return dp[best_j] / scaling_factor, _backtrack(best_j)
