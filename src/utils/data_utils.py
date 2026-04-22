@@ -42,11 +42,12 @@ def closest_above_100_with_indices(scores: list[float]) -> tuple[float, list[int
     target = 100 * scaling_factor
     total = sum(scaled)
 
-    # The minimum reachable sum >= target is provably < target + max(scaled):
-    # if subset S reaches the minimum, removing its last element gives a sum < target,
-    # so the last element's value is < target + max(scaled) - (S - max(scaled)) ... i.e.
-    # S < target + max(scaled). We cap the DP table here so it stays O(n * target)
-    # instead of O(n * total), which matters when many players have 100% scores.
+    # Cap the DP table at target + max(scaled) instead of total.
+    # Proof: if S is the minimum reachable sum >= target, removing the last item added
+    # (call its value x) yields a sum S - x < target, so S < target + x <= target + max(scaled).
+    # Nothing above that bound can ever be the minimum, so tracking it wastes time and memory.
+    # This keeps the inner loop O(n * target) rather than O(n * total) — critical when many
+    # players score 100% and total would otherwise be orders of magnitude larger than target.
     cap = min(total, target + max(scaled))
 
     _INF = cap + 1

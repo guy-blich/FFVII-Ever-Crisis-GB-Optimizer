@@ -27,7 +27,8 @@ The core function (`closest_above_100_with_indices`) is a **0/1 knapsack** varia
 - Scores are scaled to integers to avoid floating-point precision issues.
 - A DP table tracks which sums are reachable and which player indices achieve them.
 - The result is the minimum reachable sum ≥ 100%, or the maximum achievable sum if 100% is not reachable.
-- **Time complexity:** O(n × S) where n = number of player attempts and S = sum of all scaled scores.
+- **Table cap:** the DP table is bounded at `target + max_score` rather than the sum of all scores. The minimum reachable sum ≥ 100% is provably within that range, so nothing beyond it needs to be tracked.
+- **Time complexity:** O(n × T) where n = number of player attempts and T = 100% + the highest individual score (effectively a small constant), not the full sum of all scores.
 
 ---
 
